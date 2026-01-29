@@ -10,6 +10,7 @@ import SwiftUI
 import PhotosUI
 
 struct ChatView: View {
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     var conversation: ConversationSD?
     var messages: [MessageSD]
     var modelsList: [LanguageModelSD]
@@ -187,9 +188,11 @@ struct ChatView: View {
     
     var body: some View {
         VStack {
-            header
-                .padding(.horizontal)
-            
+            if horizontalSizeClass == .compact {
+                header
+                    .padding(.horizontal)
+            }
+
             if conversation != nil {
                 MessageListView(
                     messages: messages,
@@ -221,6 +224,23 @@ struct ChatView: View {
             if let newMessage = newMessage {
                 message = newMessage.content
                 isFocusedInput = true
+            }
+        }
+        .toolbar {
+            if horizontalSizeClass == .regular {
+                ToolbarItem(placement: .principal) {
+                    ModelSelectorView(
+                        modelsList: modelsList,
+                        selectedModel: selectedModel,
+                        onSelectModel: onSelectModel
+                    )
+                    .showIf(!modelsList.isEmpty)
+                }
+                ToolbarItem(placement: .primaryAction) {
+                    Button(action: onNewConversationTap) {
+                        Image(systemName: "square.and.pencil")
+                    }
+                }
             }
         }
     }

@@ -15,8 +15,10 @@ struct Chat: View, Sendable {
     @AppStorage("appUserInitials") private var userInitials: String = ""
     @AppStorage("defaultOllamaModel") private var defaultOllamaModel: String = ""
     @State var showMenu = false
+#if os(iOS)
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var columnVisibility = NavigationSplitViewVisibility.doubleColumn
+#endif
     
     init(languageModelStore: LanguageModelStore, conversationStore: ConversationStore, appStore: AppStore) {
         _languageModelStore = State(initialValue: languageModelStore)
@@ -61,9 +63,17 @@ struct Chat: View, Sendable {
             await languageModelStore.setModel(model: conversation.model)
             Haptics.shared.mediumTap()
         }
+#if os(iOS)
+        if horizontalSizeClass == .compact {
+            withAnimation {
+                showMenu.toggle()
+            }
+        }
+#else
         withAnimation {
             showMenu.toggle()
         }
+#endif
     }
     
     @MainActor func onStopGenerateTap() {
@@ -153,16 +163,11 @@ struct Chat: View, Sendable {
                     SidebarView(
                         selectedConversation: conversationStore.selectedConversation,
                         conversations: conversationStore.conversations,
-                        onConversationTap: { conversation in
-                            Task {
-                                try await conversationStore.selectConversation(conversation)
-                                await languageModelStore.setModel(model: conversation.model)
-                                Haptics.shared.mediumTap()
-                            }
-                        },
+                        onConversationTap: onConversationTap,
                         onConversationDelete: onConversationDelete,
                         onDeleteDailyConversations: conversationStore.deleteDailyConversations
                     )
+                    .navigationTitle("Conversations")
                     .toolbar {
                         ToolbarItem(placement: .primaryAction) {
                             Button(action: newConversation) {
@@ -187,8 +192,9 @@ struct Chat: View, Sendable {
                         userInitials: userInitials
                     )
                 }
+                .navigationSplitViewStyle(.balanced)
             } else {
-                SideBarStack(sidebarWidth: 300,showSidebar: $showMenu, sidebar: {
+                SideBarStack(sidebarWidth: 300, showSidebar: $showMenu, sidebar: {
                     SidebarView(
                         selectedConversation: conversationStore.selectedConversation,
                         conversations: conversationStore.conversations,
